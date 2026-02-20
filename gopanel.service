@@ -1,0 +1,18 @@
+[Unit]
+Description=GoPanel Server Monitor
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/gopanel
+ExecStart=/opt/gopanel/gopanel -config /opt/gopanel/config.yaml
+Restart=on-failure
+RestartSec=5
+# Low resource priority
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=multi-user.target

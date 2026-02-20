@@ -1,0 +1,81 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+
+const zh = {
+  dashboard:'仪表盘', processes:'进程管理', docker:'Docker', services:'系统服务',
+  network:'网络监控', crontab:'计划任务', settings:'设置',
+  hostname:'主机名', os:'操作系统', kernel:'内核版本', arch:'架构',
+  uptime:'运行时间', cpu_model:'CPU型号', cpu:'CPU使用率', memory:'内存使用',
+  disk:'磁盘使用', load:'系统负载', temperature:'温度',
+  total:'总计', used:'已用', free:'可用', percent:'占用率',
+  upload:'上传速率', download:'下载速率', connections:'连接数', interfaces:'网卡数',
+  process_name:'进程名', username:'用户', status:'状态', command:'命令',
+  kill:'终止', refresh:'刷新', search:'搜索',
+  container:'容器', image:'镜像', ports:'端口', created:'创建时间',
+  start:'启动', stop:'停止', restart:'重启', logs:'日志', close:'关闭',
+  service:'服务', description:'描述', active:'运行中', inactive:'已停止', failed:'失败',
+  all_states:'全部状态', actions:'操作',
+  schedule:'计划', job:'任务', source:'来源', crontab_desc:'当前系统所有计划任务', no_crontab_sub:'检查 /etc/crontab 和 cron.d',
+  current_username:'当前用户名', current_password:'当前密码',
+  new_username:'新用户名', new_password:'新密码', save:'保存',
+  credentials:'账号密码', credentials_desc:'修改登录账号和密码',
+  logout:'退出', lang:'English',
+  confirm_kill:'确认终止进程', confirm_kill_desc:'确定要终止进程',
+  cancel:'取消', history:'历史趋势',
+  realtime:'实时已连接', disconnected:'连接已断开',
+  no_data:'暂无数据', no_docker:'Docker 未安装或未运行',
+  no_crontab:'未发现计划任务', loading:'加载中...',
+  total_sent:'累计发送', total_recv:'累计接收',
+  partitions:'个分区', network_speed:'网络速率',
+  swap:'Swap', cached:'缓存', buffers:'缓冲', available:'可用',
+  save_success:'保存成功', save_fail:'保存失败',
+  local_ip:'本地IP', no_temp:'此平台不支持温度传感器',
+  threads:'线程', packets:'数据包',
+  language:'语言', display:'显示设置', display_desc:'语言和界面偏好',
+  version:'版本', system_info:'系统信息', system_info_desc:'当前服务器详细信息',
+  cpu_cores:'CPU核心', optional:'可选', leave_blank:'留空表示不修改',
+  network_history:'网络速率历史',
+}
+
+const en = {
+  dashboard:'Dashboard', processes:'Processes', docker:'Docker', services:'Services',
+  network:'Network', crontab:'Crontab', settings:'Settings',
+  hostname:'Hostname', os:'OS', kernel:'Kernel', arch:'Architecture',
+  uptime:'Uptime', cpu_model:'CPU Model', cpu:'CPU Usage', memory:'Memory',
+  disk:'Disk', load:'Load Average', temperature:'Temperature',
+  total:'Total', used:'Used', free:'Free', percent:'Usage',
+  upload:'Upload', download:'Download', connections:'Connections', interfaces:'Interfaces',
+  process_name:'Name', username:'User', status:'Status', command:'Command',
+  kill:'Kill', refresh:'Refresh', search:'Search',
+  container:'Container', image:'Image', ports:'Ports', created:'Created',
+  start:'Start', stop:'Stop', restart:'Restart', logs:'Logs', close:'Close',
+  service:'Service', description:'Description', active:'Active', inactive:'Inactive', failed:'Failed',
+  all_states:'All States', actions:'Actions',
+  schedule:'Schedule', job:'Job', source:'Source', crontab_desc:'All system cron jobs', no_crontab_sub:'Check /etc/crontab and cron.d',
+  current_username:'Current Username', current_password:'Current Password',
+  new_username:'New Username', new_password:'New Password', save:'Save',
+  credentials:'Credentials', credentials_desc:'Change login username and password',
+  logout:'Logout', lang:'中文',
+  confirm_kill:'Confirm Kill Process', confirm_kill_desc:'Are you sure to kill',
+  cancel:'Cancel', history:'History',
+  realtime:'Connected', disconnected:'Disconnected',
+  no_data:'No data', no_docker:'Docker is not available',
+  no_crontab:'No cron jobs found', loading:'Loading...',
+  total_sent:'Total Sent', total_recv:'Total Recv',
+  partitions:'partitions', network_speed:'Network Speed',
+  swap:'Swap', cached:'Cached', buffers:'Buffers', available:'Available',
+  save_success:'Saved successfully', save_fail:'Save failed',
+  local_ip:'Local IP', no_temp:'Temperature sensors not available',
+  threads:'threads', packets:'Packets',
+  language:'Language', display:'Display', display_desc:'Language and interface preferences',
+  version:'Version', system_info:'System Info', system_info_desc:'Current server details',
+  cpu_cores:'CPU Cores', optional:'optional', leave_blank:'Leave blank to keep unchanged',
+  network_history:'Network Speed History',
+}
+
+export const useI18n = defineStore('i18n', () => {
+  const locale = ref(localStorage.getItem('gp_lang') || 'zh')
+  const t = (key) => { const d = locale.value==='en'?en:zh; return d[key]||key }
+  function toggle() { locale.value=locale.value==='zh'?'en':'zh'; localStorage.setItem('gp_lang',locale.value) }
+  return { locale, t, toggle }
+})
