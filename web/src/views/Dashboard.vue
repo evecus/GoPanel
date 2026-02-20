@@ -191,6 +191,8 @@ const sysItems = computed(() => [
   { label: t('arch'), value: sysInfo.value.arch },
   { label: t('uptime'), value: sysInfo.value.uptime_str },
   { label: 'CPU', value: sysInfo.value.cpu_model },
+  { label: t('local_ip'), value: sysInfo.value.local_ipv4 },
+  { label: t('public_ip'), value: sysInfo.value.public_ip },
 ])
 const maxDisk = computed(() => (snap.value.disk?.partitions||[]).reduce((m,p)=>Math.max(m,p.used_percent||0),0))
 const diskParts = computed(() => (snap.value.disk?.partitions||[]).length)
