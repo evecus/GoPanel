@@ -1,0 +1,172 @@
+name: 构建二进制
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '发布版本号 (例如 v1.0.1)'
+        required: true
+        default: 'v1.0.1'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  # ── Step 1: 编译 Vue 前端 ────────────────────────────────────────
+  build-web:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build
+        working-directory: web
+        run: |
+          npm install
+          npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/
+          retention-days: 1
+
+  # ── Step 2: 编译 Go 二进制文件 ────────────────────
+  build-go:
+    name: Binary [${{ matrix.name }}]
+    runs-on: ubuntu-latest
+    needs: build-web
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-amd64
+            goos: linux
+            goarch: amd64
+            use_zig: false
+
+          - name: linux-arm64
+            goos: linux
+            goarch: arm64
+            use_zig: true
+            zig_target: aarch64-linux-musl
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+
+      - name: Download web dist
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist/
+
+      - name: go mod tidy
+        run: go mod tidy
+
+      - name: Install Zig (cross-compile only)
+        if: matrix.use_zig
+        run: |
+          ZIG_VERSION="0.13.0"
+          wget -q "https://ziglang.org/download/${ZIG_VERSION}/zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
+          tar -xf "zig-linux-x86_64-${ZIG_VERSION}.tar.xz"
+          echo "$(pwd)/zig-linux-x86_64-${ZIG_VERSION}" >> $GITHUB_PATH
+
+      - name: Setup Zig CC wrapper
+        if: matrix.use_zig
+        env:
+          ZIG_TARGET: ${{ matrix.zig_target }}
+        run: |
+          printf '#!/bin/sh\nexec zig cc -target %s "$@"\n' "$ZIG_TARGET" | sudo tee /usr/local/bin/zcc >/dev/null
+          printf '#!/bin/sh\nexec zig c++ -target %s "$@"\n' "$ZIG_TARGET" | sudo tee /usr/local/bin/zxx >/dev/null
+          sudo chmod +x /usr/local/bin/zcc /usr/local/bin/zxx
+
+      - name: Get version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build binary
+        env:
+          GOOS:        ${{ matrix.goos }}
+          GOARCH:      ${{ matrix.goarch }}
+          CGO_ENABLED: 1
+          CC:          ${{ matrix.use_zig && '/usr/local/bin/zcc' || 'gcc' }}
+          CXX:         ${{ matrix.use_zig && '/usr/local/bin/zxx' || 'g++' }}
+        run: |
+          NAME="gopanel-${{ matrix.name }}"
+          go build -ldflags="-s -w -X main.version=${{ steps.ver.outputs.VERSION }}" -o "${NAME}" .
+          tar -czf "${NAME}.tar.gz" "${NAME}" config.yaml.example README.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.name }}
+          path: gopanel-*.tar.gz
+          retention-days: 7
+
+  # ── Step 3: 创建 GitHub Release ────────────────────────────────────
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: [build-go]
+    # 修改：如果是推送 tag 或 手动点击运行，则执行
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version
+        id: ver
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "TAG=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: bin-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Checksums
+        run: cd dist && sha256sum *.tar.gz | tee SHA256SUMS.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.TAG }}
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          body: |
+            ## GoPanel ${{ steps.ver.outputs.TAG }}
+
+            ### 📦 二进制下载 (Binary Downloads)
+            | 平台 | 文件名 |
+            |----------|------|
+            | Linux amd64 | `gopanel-linux-amd64.tar.gz` |
+            | Linux arm64 | `gopanel-linux-arm64.tar.gz` |
+
+            ### 🚀 快速开始
+            ```bash
+            wget https://github.com/evecus/Gopanel/releases/download/${{ steps.ver.outputs.TAG }}/gopanel-linux-amd64.tar.gz
+            ```
