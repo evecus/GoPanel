@@ -13,7 +13,7 @@ var (
 	dockerUpdatedAt time.Time
 
 	servicesMu        sync.RWMutex
-	servicesData      []collector.Service
+	servicesData      []collector.SystemdService
 	servicesUpdatedAt time.Time
 )
 
@@ -54,7 +54,7 @@ func GetDockerContainers() ([]collector.Container, bool) {
 	return dockerData, dockerData != nil
 }
 
-func GetServices() ([]collector.Service, bool) {
+func GetServices() ([]collector.SystemdService, bool) {
 	servicesMu.RLock()
 	defer servicesMu.RUnlock()
 	return servicesData, servicesData != nil
