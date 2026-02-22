@@ -136,11 +136,13 @@
       <div ref="netChartEl" style="height:180px;margin-bottom:12px"></div>
       <div class="iface-grid">
         <div class="iface-card" v-for="iface in snap.network?.interfaces" :key="iface.name">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-            <div class="iface-dot" :class="(iface.speed_up||iface.speed_down)?'active':'idle'"></div>
-            <span style="font-weight:700;color:#1e1b4b;font-size:13px">{{ iface.name }}</span>
-            <div style="display:flex;gap:3px;flex-wrap:wrap;flex:1">
-              <span class="tag tag-blue" v-for="addr in (iface.addrs||[]).slice(0,2)" :key="addr" style="font-size:9px">{{ addr }}</span>
+          <div style="margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <div class="iface-dot" :class="(iface.speed_up||iface.speed_down)?'active':'idle'"></div>
+              <span style="font-weight:700;color:#1e1b4b;font-size:13px">{{ iface.name }}</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;padding-left:15px">
+              <span v-for="addr in (iface.addrs||[]).slice(0,2)" :key="addr" style="font-size:10px;color:#6366f1;font-family:monospace;word-break:break-all;display:block">{{ addr }}</span>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:11px">
@@ -282,8 +284,8 @@ onUnmounted(() => { window.removeEventListener('ws-msg', wsh); chart?.dispose();
 .tab.active { background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-color:transparent;box-shadow:0 2px 8px rgba(99,102,241,0.3); }
 @media (max-width:1100px) { .cards-row { grid-template-columns:1fr 1fr; } .mid-row { grid-template-columns:1fr 1fr; } .sys-grid { grid-template-columns:repeat(3,1fr); } }
 @media (max-width:680px)  { .cards-row,.mid-row,.bot-row { grid-template-columns:1fr; } .sys-grid { grid-template-columns:1fr 1fr; } .disk-grid { grid-template-columns:1fr; } }
-.iface-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:8px; }
-.iface-card { background:rgba(99,102,241,0.03);border:1px solid rgba(99,102,241,0.09);border-radius:10px;padding:12px; }
+.iface-grid { display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;justify-content:center; }
+.iface-card { flex:0 0 320px;background:rgba(99,102,241,0.03);border:1px solid rgba(99,102,241,0.09);border-radius:10px;padding:14px; }
 .iface-dot  { width:8px;height:8px;border-radius:50%;flex-shrink:0; }
 .iface-dot.active { background:#10b981;box-shadow:0 0 6px rgba(16,185,129,0.5);animation:pulse 2s infinite; }
 .iface-dot.idle   { background:#9ca3af; }
