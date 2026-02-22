@@ -3,7 +3,7 @@
     <div class="toolbar">
       <input class="inp" style="width:200px" v-model="search" :placeholder="`🔍 ${t('search')}...`" />
       <button class="btn btn-ghost btn-sm" @click="load(true)">🔄 {{ t('refresh') }}</button>
-      <span v-if="fromCache" style="font-size:11px;color:#f59e0b;margin-left:4px">📦 缓存</span>
+      <span v-if="fromCache" style="font-size:11px;color:#f59e0b;margin-left:4px">📦 缓存数据</span>
       <span style="margin-left:auto;font-size:12px;color:#9ca3af">{{ filtered.length }} {{ t('container') }}</span>
     </div>
 
@@ -163,10 +163,15 @@ const composeSaving = ref(false)
 const updating = ref(null)
 const updateLog = ref(null)
 
-const filtered = computed(() => containers.value.filter(c =>
-  c.name?.toLowerCase().includes(search.value.toLowerCase()) ||
-  c.image?.toLowerCase().includes(search.value.toLowerCase())
-))
+const filtered = computed(() => {
+  const stateOrder = s => s === 'running' ? 0 : s === 'exited' ? 1 : 2
+  return containers.value
+    .filter(c =>
+      c.name?.toLowerCase().includes(search.value.toLowerCase()) ||
+      c.image?.toLowerCase().includes(search.value.toLowerCase())
+    )
+    .sort((a, b) => stateOrder(a.state) - stateOrder(b.state))
+})
 
 function stateTag(s) { return s==='running'?'tag tag-green':s==='paused'?'tag tag-yellow':'tag tag-gray' }
 
@@ -207,49 +212,34 @@ async function showLogs(c) {
   logContent.value = data.logs || ''
 }
 
-// Parse and clean a raw docker ports string into deduplicated logical entries
-// e.g. "0.0.0.0:4444->4444/tcp[::]:4444->4444/tcp" => ["0.0.0.0:4444->4444/tcp"]
-// e.g. "443/tcp 0.0.0.0:80->80/tcp [::]:80->80/tcp" => ["443/tcp", "0.0.0.0:80->80/tcp"]
+// Parse raw docker ports string into individual entries, keeping both IPv4 and IPv6
+// Properly splits concatenated strings like "0.0.0.0:4444->4444/tcp[::]:4444->4444/tcp"
+// Result row0 = IPv4 mapping, row1 = IPv6 mapping (or exposed-only port)
 function parsedPorts(portsStr) {
   if (!portsStr) return []
-  // Step 1: insert comma before every port-like token boundary
-  // Handles concatenated strings like "0.0.0.0:X->Y/proto[::]:X->Y/proto"
   let s = portsStr
-  // Insert separator before [:: patterns and before digit-only/proto patterns that follow a /tcp or /udp
+  // Insert comma before [ that follows /tcp /udp /sctp
   s = s.replace(/(\/(?:tcp|udp|sctp))(\[)/g, '$1,$2')
+  // Insert comma before a digit that follows /tcp /udp /sctp (handles "443/tcp0.0.0.0:...")
   s = s.replace(/(\/(?:tcp|udp|sctp))(\d)/g, '$1,$2')
-  s = s.replace(/(\/(?:tcp|udp|sctp))(\s+)(\S)/g, '$1,$3')
-  // Split on commas and whitespace
+  // Split on comma and whitespace
   const tokens = s.split(/[,\s]+/).map(t => t.trim()).filter(Boolean)
-
-  // Step 2: group by container port; prefer IPv4 binding over IPv6
-  const portMap = new Map() // containerPort/proto -> display string
-  const exposed = [] // non-bound exposed ports like "443/tcp"
-
+  // Deduplicate while preserving order
+  const seen = new Set()
+  const result = []
   for (const tok of tokens) {
-    // Pattern: host:port->container/proto  or  [::]:port->container/proto
-    const m = tok.match(/^(\[?[^\]]*\]?):(\d+)->(\d+\/\w+)$/)
-    if (m) {
-      const key = m[3]
-      const isIPv4 = !tok.startsWith('[')
-      if (!portMap.has(key) || isIPv4) {
-        portMap.set(key, tok)
-      }
-    } else if (/^\d+\/\w+$/.test(tok)) {
-      // exposed-only port like 443/tcp
-      if (!exposed.includes(tok)) exposed.push(tok)
-    }
+    if (tok && !seen.has(tok)) { seen.add(tok); result.push(tok) }
   }
-
-  const result = [...exposed, ...portMap.values()]
   return result
 }
 
 function isClickablePort(portStr) {
-  return /^[0-9.]+:(\d+)->/.test(portStr)
+  // Clickable if it has a host port mapping (IPv4 or IPv6)
+  return /(?:^[0-9.]+:|^\[::]:)\d+->/.test(portStr)
 }
 
 function openPort(portStr) {
+  // Extract host port from IPv4 binding like 0.0.0.0:4444->...
   const m = portStr.match(/^[0-9.]+:(\d+)->/)
   if (m) { window.open(`http://${window.location.hostname}:${m[1]}`, '_blank') }
 }
