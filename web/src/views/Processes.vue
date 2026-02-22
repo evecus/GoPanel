@@ -5,7 +5,7 @@
       <div style="display:flex;gap:4px">
         <button class="btn btn-sm" :class="sortBy==='cpu'?'btn-primary':'btn-ghost'" @click="setSortBy('cpu')">CPU</button>
         <button class="btn btn-sm" :class="sortBy==='mem'?'btn-primary':'btn-ghost'" @click="setSortBy('mem')">MEM</button>
-        <button class="btn btn-sm btn-ghost" @click="toggleDir" :title="sortDir==='desc'?'从大到小':'从小到大'">{{ sortDir==='desc'?'↓ 从大':'↑ 从小' }}</button>
+        <button class="btn btn-sm btn-ghost" @click="toggleDir" :title="sortDir==='desc'?'从大到小':'从小到大'">{{ sortDir==='desc'?'↓':'↑' }}</button>
       </div>
       <button class="btn btn-ghost btn-sm" @click="load">🔄 {{ t('refresh') }}</button>
       <span style="margin-left:auto;font-size:12px;color:#9ca3af">{{ filtered.length }} / {{ processes.length }}</span>
