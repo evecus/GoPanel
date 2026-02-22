@@ -54,9 +54,11 @@
           <button class="btn btn-sm btn-cyan"  v-if="c.state!=='running'" @click="action(c,'start')">▶ {{ t('start') }}</button>
           <button class="btn btn-sm btn-ghost" v-if="c.state==='running'" @click="action(c,'stop')">⏹ {{ t('stop') }}</button>
           <button class="btn btn-sm btn-ghost" @click="action(c,'restart')">↺ {{ t('restart') }}</button>
-          <button class="btn btn-sm btn-ghost" @click="showInspect(c)" title="容器参数">⚙️</button>
-          <button class="btn btn-sm btn-ghost" @click="pullUpdate(c)" :disabled="updating===c.id" title="更新镜像">{{ updating===c.id ? '⏳' : '⬆️' }}</button>
-          <button class="btn btn-sm btn-ghost" style="margin-left:auto" @click="showLogs(c)">📋 {{ t('logs') }}</button>
+          <div class="cc-actions-right">
+            <button class="btn btn-sm btn-ghost" @click="showInspect(c)" title="容器参数">⚙️</button>
+            <button class="btn btn-sm btn-ghost" @click="pullUpdate(c)" :disabled="updating===c.id" title="更新镜像">{{ updating===c.id ? '⏳' : '⬆️' }}</button>
+            <button class="btn btn-sm btn-ghost" @click="showLogs(c)">📋 {{ t('logs') }}</button>
+          </div>
         </div>
         </div>
       </template>
@@ -295,9 +297,8 @@ onMounted(load)
 .toolbar { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px; }
 .inp { background:#f8faff;border:1.5px solid rgba(99,102,241,0.15);color:#1e1b4b;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none; }
 .inp:focus { border-color:#6366f1; }
-.container-grid { display:flex;flex-wrap:wrap;gap:14px;align-content:flex-start; }
-.ccard { flex:0 0 300px;max-width:calc(33.33% - 10px); }
-.ccard { background:#fff;border:1px solid rgba(99,102,241,0.1);border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(99,102,241,0.06);transition:transform 0.2s; }
+.container-grid { display:flex;flex-wrap:wrap;gap:12px;align-content:flex-start; }
+.ccard { flex:1 1 280px;min-width:0;background:#fff;border:1px solid rgba(99,102,241,0.1);border-radius:14px;padding:14px;box-shadow:0 2px 12px rgba(99,102,241,0.06);transition:transform 0.2s;box-sizing:border-box; }
 .ccard:hover { transform:translateY(-2px); }
 .cc-head { display:flex;align-items:center;gap:8px;margin-bottom:10px; }
 .cc-dot { width:9px;height:9px;border-radius:50%;flex-shrink:0; }
@@ -315,7 +316,8 @@ onMounted(load)
 .cm { display:flex;align-items:center;gap:6px; }
 .mini-bar { flex:1;height:4px;background:#f0f4ff;border-radius:2px;overflow:hidden; }
 .mini-fill { height:100%;border-radius:2px;transition:width 0.5s; }
-.cc-actions { display:flex;gap:6px;flex-wrap:wrap; }
+.cc-actions { display:flex;gap:6px;align-items:center;flex-wrap:nowrap; }
+.cc-actions-right { display:flex;gap:4px;margin-left:auto;flex-shrink:0; }
 .card { background:#fff;border:1px solid rgba(99,102,241,0.1);border-radius:14px;padding:18px;box-shadow:0 2px 12px rgba(99,102,241,0.06); }
 .empty-state { text-align:center;padding:60px 20px; }
 .modal-overlay { position:fixed;inset:0;background:rgba(30,27,75,0.4);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1000; }
@@ -346,5 +348,9 @@ onMounted(load)
 .alert-err { background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.3);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;color:#f43f5e; }
 .alert-ok { background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12px;color:#10b981; }
 @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.5} }
-@media (max-width:600px) { .container-grid{grid-template-columns:1fr} .inspect-grid{grid-template-columns:1fr} }
+.row-break { flex-basis:100%;width:100%;height:0;margin:0; }
+@media (max-width:600px) {
+  .ccard { flex:1 1 100%; }
+  .inspect-grid { grid-template-columns:1fr; }
+}
 </style>
