@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gopanel/gopanel/internal/api"
+	"github.com/gopanel/gopanel/internal/cache"
 	"github.com/gopanel/gopanel/internal/config"
 	"github.com/gopanel/gopanel/internal/store"
 	"github.com/gopanel/gopanel/internal/websocket"
@@ -43,6 +44,9 @@ func main() {
 	hub := websocket.NewHub()
 	go hub.Run()
 	go store.StartCollector(db, hub, cfg.CollectInterval)
+
+	// 启动服务端缓存，每30秒后台刷新 docker 和 services 数据
+	cache.Start(30 * time.Second)
 
 	router := api.SetupRouter(cfg, db, hub, webFS)
 
