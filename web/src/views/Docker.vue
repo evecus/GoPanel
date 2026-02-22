@@ -8,7 +8,10 @@
     </div>
 
     <div v-if="filtered.length" class="container-grid">
-      <div class="ccard" v-for="c in filtered" :key="c.id">
+      <template v-for="(c, idx) in filtered" :key="c.id">
+        <!-- 不同状态之间插入占满整行的分隔，强制换行 -->
+        <div v-if="idx > 0 && filtered[idx-1].state !== c.state" class="row-break"></div>
+        <div class="ccard">
         <div class="cc-head">
           <div class="cc-dot" :class="c.state==='running'?'run':c.state==='paused'?'pause':'stop'"></div>
           <div class="cc-name">{{ c.name }}</div>
@@ -56,7 +59,8 @@
           <button class="btn btn-sm btn-ghost" @click="pullUpdate(c)" :disabled="updating===c.id" title="更新镜像">{{ updating===c.id ? '⏳' : '⬆️' }}</button>
           <button class="btn btn-sm btn-ghost" style="margin-left:auto" @click="showLogs(c)">📋 {{ t('logs') }}</button>
         </div>
-      </div>
+        </div>
+      </template>
     </div>
 
     <div class="card empty-state" v-else>
@@ -171,6 +175,21 @@ const filtered = computed(() => {
       c.image?.toLowerCase().includes(search.value.toLowerCase())
     )
     .sort((a, b) => stateOrder(a.state) - stateOrder(b.state))
+})
+
+const groupedContainers = computed(() => {
+  const order = ['running', 'exited']
+  const groups = {}
+  for (const c of filtered.value) {
+    const key = order.includes(c.state) ? c.state : 'other'
+    if (!groups[key]) groups[key] = []
+    groups[key].push(c)
+  }
+  const result = []
+  for (const state of [...order, 'other']) {
+    if (groups[state]?.length) result.push({ state, items: groups[state] })
+  }
+  return result
 })
 
 function stateTag(s) { return s==='running'?'tag tag-green':s==='paused'?'tag tag-yellow':'tag tag-gray' }
@@ -299,7 +318,8 @@ onMounted(() => load())
 .toolbar { display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px; }
 .inp { background:#f8faff;border:1.5px solid rgba(99,102,241,0.15);color:#1e1b4b;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;outline:none; }
 .inp:focus { border-color:#6366f1; }
-.container-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px; }
+.container-grid { display:flex;flex-wrap:wrap;gap:14px;align-content:flex-start; }
+.ccard { flex:0 0 300px;max-width:calc(33.33% - 10px); }
 .ccard { background:#fff;border:1px solid rgba(99,102,241,0.1);border-radius:14px;padding:16px;box-shadow:0 2px 12px rgba(99,102,241,0.06);transition:transform 0.2s; }
 .ccard:hover { transform:translateY(-2px); }
 .cc-head { display:flex;align-items:center;gap:8px;margin-bottom:10px; }
