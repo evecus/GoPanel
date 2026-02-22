@@ -14,7 +14,8 @@
         <button class="btn btn-sm" :class="sortBy==='cpu'?'btn-primary':'btn-ghost'" @click="setSort('cpu')">CPU</button>
         <button v-if="sortBy" class="btn btn-sm btn-ghost" @click="toggleDir" :title="sortDir==='desc'?'从大到小':'从小到大'">{{ sortDir==='desc'?'↓':'↑' }}</button>
       </div>
-      <button class="btn btn-ghost btn-sm" @click="load">🔄 {{ t('refresh') }}</button>
+      <button class="btn btn-ghost btn-sm" @click="load(true)">🔄 {{ t('refresh') }}</button>
+      <span v-if="fromCache" style="font-size:11px;color:#f59e0b;margin-left:4px">📦 缓存数据</span>
       <span style="margin-left:auto;font-size:12px;color:#9ca3af">{{ filtered.length }} 个服务</span>
     </div>
 
@@ -190,6 +191,8 @@ const logModal   = ref(null)
 const logContent = ref('')
 const detailModal = ref(null)
 const loading    = ref(false)
+const fromCache  = ref(false)
+const SVC_CACHE_KEY = 'gopanel_services_cache'
 const errorMsg   = ref('')
 
 // Editor state
@@ -219,18 +222,37 @@ function fileStateTag(s) {
          s === 'masked'   ? 'tag-red'    : 'tag-yellow'
 }
 
-function setSort(s) { sortBy.value = s; load() }
-function toggleDir() { sortDir.value = sortDir.value==='desc'?'asc':'desc'; load() }
+function setSort(s) { sortBy.value = s; load(true) }
+function toggleDir() { sortDir.value = sortDir.value==='desc'?'asc':'desc'; load(true) }
 
-async function load() {
+function saveSvcCache(data) {
+  try { localStorage.setItem(SVC_CACHE_KEY, JSON.stringify({ ts: Date.now(), data })) } catch {}
+}
+function loadSvcCache() {
+  try {
+    const raw = localStorage.getItem(SVC_CACHE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (Date.now() - parsed.ts < 5 * 60 * 1000) return parsed.data
+  } catch {}
+  return null
+}
+
+async function load(force) {
+  if (!force) {
+    const cached = loadSvcCache()
+    if (cached) { services.value = cached; fromCache.value = true }
+  }
   loading.value = true; errorMsg.value = ''
   try {
     const params = sortBy.value ? `?sort=${sortBy.value}&dir=${sortDir.value}` : ''
     const { data } = await axios.get('/api/services' + params)
     services.value = Array.isArray(data) ? data : []
+    saveSvcCache(services.value)
+    fromCache.value = false
     if (!services.value.length) errorMsg.value = 'No services returned.'
   } catch(e) {
-    services.value = []
+    if (!services.value.length) services.value = []
     errorMsg.value = e.response?.data?.error || e.message
   } finally {
     loading.value = false
@@ -240,7 +262,7 @@ async function load() {
 async function action(svc, act) {
   try {
     await axios.post(`/api/services/${svc.unit}/${act}`)
-    setTimeout(load, 900)
+    setTimeout(() => load(true), 900)
   } catch(e) { alert(e.response?.data?.error || e.message) }
 }
 
@@ -287,7 +309,7 @@ function closeEditor() {
   saveOk.value = false
 }
 
-onMounted(load)
+onMounted(() => load())
 </script>
 
 <style scoped>
